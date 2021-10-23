@@ -15,7 +15,7 @@ with open('L_5_7.txt', 'r') as base:
         else:
             profit_dir[name] = f'Убыток составил: {profit}'
 
-    average_profit = {'Средняя прыбль': sum(profit_list)}
+    average_profit = {'Средняя прыбль': round(sum(profit_list) / len(profit_list))}
 
     base_list.append(profit_dir)
     base_list.append(average_profit)
