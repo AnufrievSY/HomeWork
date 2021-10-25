@@ -2,10 +2,10 @@ from random import randint
 
 
 class Car:
-    speed = None
-    color = None
-    name = None
-    is_police = None
+    def __call__(self, color, name, is_police):
+        self.color = color
+        self.name = name
+        self.is_police = is_police
 
     def go(self):
         return 'Движется'
@@ -21,9 +21,10 @@ class Car:
 
 
 class TownCar(Car):
-    color = 'Grey'
     name = 'Toyota'
+    color = 'Grey'
     is_police = False
+
 
     def show_speed(self, speed):
         limit = 60
@@ -71,3 +72,5 @@ print(f'----{list(result.keys())[i]} МАШИНА----\n'
       f'Цвет: {list(result.values())[i].color}\n'
       f'{"Полицейская машина" if list(result.values())[i].is_police else "Не полицейская" }\n'
       f'{list(result.values())[i].show_speed(randint(10, 180)) if status == "Движется" else status}')
+
+
