@@ -10,17 +10,21 @@ class Cell:
         return self.result
 
     def __add__(self, other):
-        return f'слияние клетки: {self.param} + {other.param} = {self.param + other.param}'
+        result = self.param + other.param
+        return result
 
     def __sub__(self, other):
-        result = self.param - other.param
-        return f'вычитание из клетки: {self.param} - {other.param} = {result}' if result > 0 else 'клетки нет'
+        q = self.param - other.param
+        result = q if q > 0 else 0
+        return result
 
     def __mul__(self, other):
-        return f'слияние клетки: {self.param} * {other.param} = {self.param * other.param}'
+        result = self.param * other.param
+        return result
 
     def __truediv__(self, other):
-        return f'вычитание из клетки: {self.param} / {other.param} = {self.param / other.param}'
+        result = self.param / other.param
+        return result
 
     def make_order(self, row):
         result = ''
