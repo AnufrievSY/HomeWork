@@ -1,5 +1,0 @@
-firm_0 OOO 1624 662
-firm_1 OAO 2387 160
-firm_2 OOO 2608 4507
-firm_3 OAO 2609 393
-firm_4 OOO 1001 1340
