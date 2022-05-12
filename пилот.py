@@ -10,7 +10,6 @@ to_pas = input('\nКуда сохранять:\n')
 df_code = pd.read_excel(f'{os.getcwd()}/КОДЫ.xlsx')
 SRG = pd.read_excel(f'{os.getcwd()}/ЦРГ.xlsx')
 adres_med = pd.read_excel(f'{os.getcwd()}/адреса учреждений.xlsx')
-adres_town = pd.read_excel(f'{os.getcwd()}/адреса городов.xlsx')
 
 df_base = pd.read_csv(f'{pas}/выгрузка.csv', delimiter=';', low_memory=False)
 base = pd.read_excel(f'{pas}/Журнал регистрации формы сведений о ребенке.xlsx')
@@ -96,34 +95,42 @@ def get_df(SNILS):
         df['Значение'][106] = 'X'
 
     # Поиск рекомендуемого адреса для прохождения пилота
-    adres = df['Значение'][12].replace(",", "").split(' ')
-    adres = adres[1:adres.index('д.') - 2]
-    r = [word for word in adres if word[0].isupper()]
-    for i in adres:
-        try:
-            r.append(int(i))
-        except:
-            None
-    adres = []
-    for a in r:
-        a_ = adres_town.isin([a]).any()
-        try:
-            column = a_.loc[a_.values == True].index.to_list()[0]
-            adres += adres_town.loc[adres_town[column] == a, 'Управленческий округ'].to_list()
-            a = list(set(adres))[0]
-            if a == 'Восточный' or a == 'Горнозаводской':
-                a = 'Северный'
-            elif a == 'Западный':
-                a = 'Южный'
-            r = adres_med.loc[adres_med['условие'] == a, 'Наименование учреждения'].to_list()
-            r.append(adres_med['Наименование учреждения'][1])
-            age = int(df['Значение'][4].split(' ')[0])
-            if age >= 14 and age <= 17: r.append(adres_med['Наименование учреждения'][0])
-            r = ['- ' + i + '.' for i in r]
+    try:
+        adres_town = pd.read_excel(f'{os.getcwd()}/адреса городов.xlsx')
+        adres_town = adres_town.loc[adres_town['ЦРГ'] == int(df.loc[73, 'Значение'])]
+        if int(df.loc[4, 'Значение'].split()[0]) < 14:
+            adres_town = adres_town.loc[adres_town['Возраст'] == 'до 14']
+        else:
+            adres_town = adres_town.loc[adres_town['Возраст'] == '14-17']
 
-            df.loc[99, 'Значение'] = '\n'.join(r)
-        except:
-            None
+        adres = df['Значение'][12].replace(",", "").split(' ')
+        adres = adres[1:adres.index('д.') - 2]
+        r = [word for word in adres if word[0].isupper()]
+        for i in adres:
+            try:
+                r.append(int(i))
+            except:
+                None
+        result = []
+        for a in r:
+            try:
+                result += adres_town.loc[adres_town[
+                                             'Муниципальные образования (управленческие округа)'] == a, 'Наименование учреждения'].to_list()
+            except:
+                None
+        result = list(set([i.replace('\xa0', ' ') for i in result]))
+        if len(result) == 0:
+            a = 'Свердловская область (остальные МО)'
+            try:
+                result += adres_town.loc[adres_town[
+                                             'Муниципальные образования (управленческие округа)'] == a, 'Наименование учреждения'].to_list()
+            except:
+                None
+        result = list(set([i.replace('\xa0', ' ') for i in result]))
+        df.loc[99, 'Значение'] = '\n'.join(result)
+    except:
+        df.loc[99, 'Значение'] = ''
+        print(f'{SNILS}: Adres Error')
 
     # Определение предпочительного способа связи
     value = df.loc[52, 'Значение']
@@ -154,24 +161,36 @@ def get_df(SNILS):
 
     return df
 
-
-def get_image(df, doc):
+def get_imge(df, doc):
+    df_ = df.copy()
     img_true = InlineImage(doc, f'{os.getcwd()}/box_true.png')
     img_false = InlineImage(doc, f'{os.getcwd()}/box_false.png')
-    df.loc[df[df['Значение'] == 'Первая'].loc[df['№№(МСЭ)'] == 1].index.tolist(), 'Значение'] = img_true
-    df.loc[df[df['Значение'] == 'Вторая'].loc[df['№№(МСЭ)'] == 2].index.tolist(), 'Значение'] = img_true
-    df.loc[df[df['Значение'] == 'Третья'].loc[df['№№(МСЭ)'] == 3].index.tolist(), 'Значение'] = img_true
-    df.loc[df['Значение'].isin(['Первая', 'Вторая', 'Третья', 'Не установлено']) == True, 'Значение'] = img_false
+    df_.loc[df_[df_['Значение'] == 'Первая'].loc[df_['№№(МСЭ)'] == 1].index.tolist(), 'Значение'] = img_true
+    df_.loc[df_[df_['Значение'] == 'Вторая'].loc[df_['№№(МСЭ)'] == 2].index.tolist(), 'Значение'] = img_true
+    df_.loc[df_[df_['Значение'] == 'Третья'].loc[df_['№№(МСЭ)'] == 3].index.tolist(), 'Значение'] = img_true
+    df_.loc[df_['Значение'].isin(['Первая', 'Вторая', 'Третья', 'Не установлено']) == True, 'Значение'] = img_false
+    return df_
 
-    return df
 
-for j in base['СНИЛС'].to_list():
+snils_list = base['СНИЛС'].to_list()[:10]
+len_ = len(snils_list)
+time_one = 3.04
+
+time_all = len_ * time_one
+
+if time_all > 60:
+    time_all /= 60
+    print(f'\nОбработка займет примерно {time_all} минут.\n')
+else:
+    print(f'\nОбработка займет примерно {time_all} секунд.\n')
+
+for j in snils_list:
     try:
-        df_ = get_df(j)
+        df_1 = get_df(j)
         try:
             for i in ['МСЭ', 'родители', 'учреждение', 'ФСС']:
                 doc = DocxTemplate(f'{pas}/Бланк Формы сведений о ребенке ({i}).docx')
-                df = get_image(df_, doc)
+                df = get_imge(df_1, doc)
                 context = {df[f'код({i})'][j]: df['Значение'][j] for j in df.index}
                 doc.render(context)
 
